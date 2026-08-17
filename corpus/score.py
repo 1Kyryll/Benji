@@ -42,6 +42,9 @@ DEFAULT_CACHE = Path(__file__).resolve().parent.parent / ".corpus-cache"
 class NullResolver:
     name = "none (no analyser yet — build step 0)"
 
+    def begin_repo(self, root: Path, files: list[Path]) -> None:
+        return None
+
     def resolve(self, candidate: Candidate, source: str) -> str | None:
         return None
 
@@ -110,7 +113,12 @@ def score_repo(
     rules: Counter[str] = Counter()
     pool: list[tuple[Candidate, str]] = []
 
-    for path in python_files(root, exclude):
+    files = python_files(root, exclude)
+    # Whole-repository analysis is built once per repo, not once per candidate.
+    if hasattr(resolver, "begin_repo"):
+        resolver.begin_repo(root, files)
+
+    for path in files:
         score.files += 1
         try:
             source = path.read_text(encoding="utf-8", errors="replace")

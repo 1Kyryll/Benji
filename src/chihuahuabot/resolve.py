@@ -5,33 +5,59 @@ this is the entire contract between them: given a candidate the harness found,
 say whether we can turn it into a priced call site.
 
 It lives here rather than in ``corpus/`` because it grows as the analyser does.
-At build step 1 it answers from strict detectors alone; at step 2 the wrapper
-index will let it follow ``self.llm.chat()`` down to an SDK call, and the number
-it reports will move without the denominator shifting underneath it.
+At build step 1 it answered from strict detectors alone. It now builds a whole
+repository index first, so a call like ``self.llm.chat()`` resolves through the
+wrapper that owns it — and the number moves without the denominator shifting
+underneath it.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from chihuahuabot.extract import extract
+from chihuahuabot.index import RepoIndex
 
 
 class CorpusResolver:
-    name = "chihuahuabot.extract (build step 1: strict detectors, no wrapper index)"
+    name = "chihuahuabot.index (build step 2: wrapper index + reverse call graph)"
 
     def __init__(self) -> None:
-        # Extraction is per-file, the harness asks per-candidate. Cache on the
-        # source itself so two repos sharing a relative path cannot collide.
-        self._cache: dict[tuple[str, int], set[int]] = {}
+        self._index: RepoIndex | None = None
+        self._root: Path | None = None
+        self._lines: dict[str, set[int]] = {}
 
-    def _lines(self, file: str, source: str) -> set[int]:
-        key = (file, hash(source))
-        cached = self._cache.get(key)
-        if cached is None:
-            try:
-                cached = {site.lineno for site in extract(source, file)}
-            except (SyntaxError, ValueError, RecursionError):
-                cached = set()
-            self._cache[key] = cached
+    def begin_repo(self, root: Path, files: list[Path]) -> None:
+        """Build the index once per repository.
+
+        The harness calls this before scoring a repository's candidates. Without
+        it the resolver would rebuild the index per candidate, which for a repo
+        the size of onyx means parsing 1,885 files forty times over.
+        """
+        self._root = root
+        self._lines = {}
+        try:
+            self._index = RepoIndex.build(root, files)
+        except (RecursionError, MemoryError):
+            # A pathological repository must degrade to step-1 behaviour rather
+            # than take the whole scoring run down with it.
+            self._index = None
+
+    def _resolved_lines(self, file: str, source: str) -> set[int]:
+        cached = self._lines.get(file)
+        if cached is not None:
+            return cached
+
+        try:
+            if self._index is not None and file in self._index.sources:
+                sites = self._index.call_sites(file)
+            else:
+                sites = extract(source, file)
+            cached = {site.lineno for site in sites}
+        except (SyntaxError, ValueError, RecursionError):
+            cached = set()
+
+        self._lines[file] = cached
         return cached
 
     def resolve(self, candidate, source: str) -> str | None:
@@ -43,4 +69,8 @@ class CorpusResolver:
         number to be wrong about. Identity has to survive across commits; this
         comparison does not.
         """
-        return candidate.file if candidate.lineno in self._lines(candidate.file, source) else None
+        return (
+            candidate.file
+            if candidate.lineno in self._resolved_lines(candidate.file, source)
+            else None
+        )
