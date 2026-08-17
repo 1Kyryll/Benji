@@ -1,0 +1,117 @@
+# ChihuahuaBot coverage corpus.
+#
+# Selection rule: prefer APPLICATIONS over LLM libraries. LangChain, LlamaIndex
+# and LiteLLM exist to abstract the SDK; their wrapper-depth distribution is
+# pathological and would skew every resolution decision we make. What we want is
+# ordinary application code, where someone wrapped the SDK once in a client
+# module because it was convenient.
+#
+# Commits are pinned so the coverage number is reproducible. SHAs below were
+# each verified against the live remote on 2026-08-17 via `git ls-remote HEAD`.
+# Re-pin deliberately, never automatically: an unannounced SHA bump silently
+# changes the denominator and makes two coverage numbers incomparable.
+
+schema = 1
+pinned_on = "2026-08-17"
+
+# Directory names excluded everywhere, matched against any path segment. Test
+# suites and vendored trees are not the application code we are characterising,
+# and fixtures full of fake calls would inflate the denominator.
+[defaults]
+exclude_dirs = [
+  ".git",
+  ".venv",
+  "build",
+  "dist",
+  "examples",
+  "migrations",
+  "node_modules",
+  "site-packages",
+  "test",
+  "testing",
+  "tests",
+  "venv",
+]
+
+[[repo]]
+name = "Aider-AI/aider"
+url = "https://github.com/Aider-AI/aider"
+commit = "5dc9490bb35f9729ef2c95d00a19ccd30c26339c"
+kind = "application"
+notes = "CLI coding agent. Routes model calls through its own model abstraction."
+
+[[repo]]
+name = "open-webui/open-webui"
+url = "https://github.com/open-webui/open-webui"
+commit = "01f4282f1ffe0d6212f58d3afbeae21fffd0c4be"
+kind = "application"
+notes = "Self-hosted chat UI. FastAPI backend, multiple provider backends."
+
+[[repo]]
+name = "onyx-dot-app/onyx"
+url = "https://github.com/onyx-dot-app/onyx"
+commit = "6376385614d6c5d69b7460a11a86b656cdd88a7b"
+kind = "application"
+notes = "Enterprise RAG search (formerly Danswer). Heavy wrapping expected."
+
+[[repo]]
+name = "Significant-Gravitas/AutoGPT"
+url = "https://github.com/Significant-Gravitas/AutoGPT"
+commit = "601093ddfe23a3d58a9c8f4a208bd49b203ee612"
+kind = "application"
+notes = "Agent platform. Agent loops are out of MVP scope but the call sites are real."
+
+[[repo]]
+name = "gpt-engineer-org/gpt-engineer"
+url = "https://github.com/gpt-engineer-org/gpt-engineer"
+commit = "a90fcd543eedcc0ff2c34561bc0785d2ba83c47e"
+kind = "application"
+notes = "Small codebase. Useful as a case where hand-verifying every site is feasible."
+
+[[repo]]
+name = "mem0ai/mem0"
+url = "https://github.com/mem0ai/mem0"
+commit = "001c235229be8795e3834520467bd0d661ed8f34"
+kind = "hybrid"
+notes = "Memory layer — library-shaped. Kept as a deliberate contrast case; if its wrapper depth looks nothing like the applications, that is a finding."
+
+[[repo]]
+name = "explodinggradients/ragas"
+url = "https://github.com/explodinggradients/ragas"
+commit = "298b68274234c060deacab3cf5fb52aa3a20e885"
+kind = "hybrid"
+notes = "Eval framework. Calls models in loops over datasets — good multiplicity material for step 5."
+
+[[repo]]
+name = "VikParuchuri/marker"
+url = "https://github.com/VikParuchuri/marker"
+commit = "e1a6226adfaab4cd573cfa96e12d60905ee38036"
+kind = "application"
+notes = "Document conversion with optional LLM passes. Guarded call sites expected."
+
+[[repo]]
+name = "khoj-ai/khoj"
+url = "https://github.com/khoj-ai/khoj"
+commit = "ae229ca894c0b80ad84664afcfdde523b5e87057"
+kind = "application"
+notes = "Personal AI assistant, Django backend. Entry points are HTTP routes."
+
+[[repo]]
+name = "assafelovic/gpt-researcher"
+url = "https://github.com/assafelovic/gpt-researcher"
+commit = "5d84d2f5553e70a2765a8ff3a0d2672d60437ce8"
+kind = "application"
+notes = "Research agent. Calls models in loops over sources — multiplicity material."
+
+[[repo]]
+name = "zylon-ai/private-gpt"
+url = "https://github.com/zylon-ai/private-gpt"
+commit = "4a030776a31a901ad80b1bf4d7faa2c1a367efbb"
+kind = "application"
+notes = "Self-hosted RAG app with a component/DI layer between the app and the model."
+
+# REMOVED 2026-08-17: All-Hands-AI/OpenHands. At 6670b472 the repo contains 8
+# Python files, all CI scripts and test mocks — the agent is TypeScript there and
+# the Python moved elsewhere. It would have contributed a real 0/0 to the corpus
+# and quietly diluted the coverage number. Kept as a note because "verify the
+# repo is actually Python before pinning it" is the lesson, not the repo.
