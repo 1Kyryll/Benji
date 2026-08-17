@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# corpus checkouts and harness output
+.corpus-cache/
+corpus-report.json
+
+# agent and editor config — local, not part of the project
+.claude/
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store

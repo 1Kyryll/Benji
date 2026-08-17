@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chihuahuabot"
+version = "0.0.1"
+description = "Predicts the LLM/metered-API cost impact of a code diff and comments it on the PR."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+# Analysis modules are stdlib-only by rule. Runtime deps land later, in the
+# modules allowed to have them (tokens.py, frequency.py, render.py, action/).
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+chihuahuabot = "chihuahuabot.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# `corpus/` is a development harness, deliberately outside the wheel. It stays
+# importable during tests without being shipped to anyone who installs the tool.
+pythonpath = ["."]
+addopts = "-q"
