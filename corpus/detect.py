@@ -22,7 +22,6 @@ from dataclasses import dataclass
 STRONG_VERBS = frozenset(
     {
         "acompletion",
-        "acreate",
         "achat",
         "chat",
         "chat_completion",
@@ -38,8 +37,14 @@ STRONG_VERBS = frozenset(
 
 # Tail attributes that are metered *in the right company* only. `create` alone is
 # hopeless — every ORM in the world has one.
+#
+# `acreate` sits here rather than with the strong verbs because Django's async
+# ORM uses it: 26 of khoj's 36 candidates were `Model.objects.acreate(...)`,
+# which is a database write. The old OpenAI shape `openai.ChatCompletion.acreate`
+# still matches, because `openai` is a provider noun in its path.
 WEAK_VERBS = frozenset(
     {
+        "acreate",
         "ainvoke",
         "astream",
         "call",
