@@ -130,6 +130,10 @@ class CallSite:
     literals: tuple[tuple[str, Literal], ...] = ()
     confidence: float = 1.0
     depth: int = 0
+    # The call as written, normalised by `ast.unparse`. Survives reformatting;
+    # changes the moment someone edits the call, which is exactly when the
+    # content-hash matcher should stop claiming it is the same site.
+    content: str = ""
 
     @property
     def id(self) -> str:
@@ -350,6 +354,7 @@ class CallSiteVisitor(ast.NodeVisitor):
             literals=literals,
             confidence=confidence,
             depth=depth,
+            content=ast.unparse(node),
         )
 
 
