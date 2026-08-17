@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import ast
 import warnings
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 Literal = str | int | float | bool | None
@@ -44,6 +45,27 @@ SDK_DETECTORS: dict[tuple[str, ...], tuple[str, str]] = {
 
 # litellm is called as a plain function, either bare or off the module.
 LITELLM_NAMES = frozenset({"completion", "acompletion", "text_completion"})
+
+# Framework calls: LangChain and friends. `llm.invoke(messages)` is a metered
+# call, but the receiver's type lives in a third-party package we refuse to parse,
+# so the wrapper index stops at the repository boundary and can never prove it.
+#
+# The corpus says this is the dominant unresolved shape in real applications —
+# people wrap the SDK in someone else's abstraction far more often than in one of
+# their own. Refusing to detect it would mean a bot that reports nothing on the
+# most common way Python code calls a model.
+#
+# The evidence is a naming convention rather than a type, so these sites carry
+# reduced confidence and are tiered accordingly rather than reported as certain.
+FRAMEWORK_VERBS = frozenset(
+    {"invoke", "ainvoke", "stream", "astream", "batch", "abatch", "chat", "achat"}
+)
+
+FRAMEWORK_RECEIVERS = frozenset(
+    {"llm", "_llm", "model", "_model", "chat_model", "chat_llm", "llm_client", "language_model"}
+)
+
+FRAMEWORK_CONFIDENCE = 0.7
 
 HTTP_VERBS = frozenset({"post", "request", "stream"})
 
@@ -69,6 +91,21 @@ PAYLOAD_KWARGS = ("json", "data", "json_data")
 
 
 @dataclass(frozen=True)
+class WrapperHint:
+    """What the wrapper index learned about a call that is not literally an SDK call.
+
+    ``self.llm.chat()`` costs money, but only because something further down does.
+    The index works that out; this carries the answer back so ordinals are
+    assigned in one place instead of two.
+    """
+
+    provider: str
+    api: str
+    depth: int
+    confidence: float
+
+
+@dataclass(frozen=True)
 class CallSite:
     """One metered call, identified by position rather than by line.
 
@@ -87,10 +124,12 @@ class CallSite:
     ordinal: int
     provider: str
     api: str
-    shape: str  # "sdk" | "http"
+    shape: str  # "sdk" | "http" | "framework" | "wrapper"
     model: str | None
     lineno: int
     literals: tuple[tuple[str, Literal], ...] = ()
+    confidence: float = 1.0
+    depth: int = 0
 
     @property
     def id(self) -> str:
@@ -176,6 +215,19 @@ def match_sdk(path: tuple[str, ...]) -> tuple[str, str] | None:
     return None
 
 
+def match_framework(path: tuple[str, ...]) -> tuple[str, str] | None:
+    """Resolve a framework-shaped call from its receiver name.
+
+    ``llm.invoke(...)`` and ``self._llm.chat(...)``. Weaker evidence than a type,
+    which is why the resulting site carries ``FRAMEWORK_CONFIDENCE``.
+    """
+    if len(path) < 2 or path[-1] not in FRAMEWORK_VERBS:
+        return None
+    if path[-2].lower() not in FRAMEWORK_RECEIVERS:
+        return None
+    return ("framework", path[-1])
+
+
 def match_http(path: tuple[str, ...], node: ast.Call) -> tuple[str, str] | None:
     """Resolve a raw HTTP call to ``(provider, endpoint)`` from its arguments."""
     if path[-1].lower() not in HTTP_VERBS:
@@ -207,11 +259,21 @@ class CallSiteVisitor(ast.NodeVisitor):
     scope counts independently so a nested helper gets its own sequence.
     """
 
-    def __init__(self, file: str) -> None:
+    def __init__(
+        self,
+        file: str,
+        wrappers: Mapping[int, WrapperHint] | None = None,
+        include_framework: bool = True,
+    ) -> None:
         self.file = file
         self.scope: list[str] = []
         self.counters: dict[tuple[str, ...], int] = {}
         self.sites: list[CallSite] = []
+        # Calls the wrapper index resolved. They are metered too, so they take
+        # ordinals alongside direct calls — which is precisely why ordinals are
+        # assigned here and only here.
+        self.wrappers: Mapping[int, WrapperHint] = wrappers or {}
+        self.include_framework = include_framework
 
     # A class body has its own counter: a metered call at class scope is rare
     # but it is not inside any method, and it needs somewhere to live.
@@ -238,6 +300,7 @@ class CallSiteVisitor(ast.NodeVisitor):
             return None
 
         literals: tuple[tuple[str, Literal], ...] = ()
+        confidence, depth = 1.0, 0
 
         sdk = match_sdk(path)
         if sdk is not None:
@@ -246,14 +309,30 @@ class CallSiteVisitor(ast.NodeVisitor):
             model = kwarg_literal(node, "model")
             model = model if isinstance(model, str) else None
             literals = (("max_tokens", kwarg_literal(node, "max_tokens")),)
-        else:
-            http = match_http(path, node)
-            if http is None:
-                return None
+        elif (http := match_http(path, node)) is not None:
             provider, endpoint = http
             api, shape = "http", "http"
             model = http_model(node)
             literals = (("endpoint", endpoint),)
+        elif (hint := self.wrappers.get(node.lineno)) is not None:
+            provider, api, shape = hint.provider, hint.api, "wrapper"
+            # The model belongs to whatever the wrapper eventually calls, and
+            # that call may take it as an argument. Unknown here is honest.
+            model = kwarg_literal(node, "model")
+            model = model if isinstance(model, str) else None
+            confidence, depth = hint.confidence, hint.depth
+            literals = (("wrapped", ".".join(path)),)
+        elif self.include_framework and (framework := match_framework(path)) is not None:
+            # Last, on purpose. If the wrapper index proved where this call goes,
+            # that answer is better than a guess from the receiver's name.
+            provider, api = framework
+            shape = "framework"
+            model = kwarg_literal(node, "model")
+            model = model if isinstance(model, str) else None
+            confidence = FRAMEWORK_CONFIDENCE
+            literals = (("receiver", path[-2]),)
+        else:
+            return None
 
         key = tuple(self.scope)
         ordinal = self.counters.get(key, 0)
@@ -269,10 +348,17 @@ class CallSiteVisitor(ast.NodeVisitor):
             model=model,
             lineno=node.lineno,
             literals=literals,
+            confidence=confidence,
+            depth=depth,
         )
 
 
-def extract(source: str, filename: str) -> list[CallSite]:
+def extract(
+    source: str,
+    filename: str,
+    wrappers: Mapping[int, WrapperHint] | None = None,
+    include_framework: bool = True,
+) -> list[CallSite]:
     """Every metered call site in ``source``, in source order.
 
     Raises ``SyntaxError`` on unparseable input. The caller decides whether that
@@ -283,6 +369,6 @@ def extract(source: str, filename: str) -> list[CallSite]:
         warnings.simplefilter("ignore", SyntaxWarning)
         tree = ast.parse(source, filename=filename)
 
-    visitor = CallSiteVisitor(filename)
+    visitor = CallSiteVisitor(filename, wrappers, include_framework)
     visitor.visit(tree)
     return sorted(visitor.sites, key=lambda s: s.lineno)
