@@ -48,7 +48,7 @@ class NullResolver:
 
 def load_resolver() -> object:
     try:
-        from chihuahuabot.index import CorpusResolver
+        from chihuahuabot.resolve import CorpusResolver
     except ImportError:
         return NullResolver()
     return CorpusResolver()
