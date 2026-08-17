@@ -29,6 +29,9 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Fixtures are parsed, never executed. They hold fake keys, undefined names and
+# deliberately odd shapes, because that is what the analyser has to survive.
+extend-exclude = ["tests/fixtures"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
