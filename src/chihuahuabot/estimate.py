@@ -36,11 +36,20 @@ class Range:
         return cls(value, value, value)
 
     def __mul__(self, other: Range) -> Range:
-        return Range(
+        """Interval multiplication over all four corners.
+
+        For two non-negative ranges this is just low×low and high×high, which is
+        the common case. It matters when one side is signed: a cost *delta* can
+        be negative, and multiplying its low by a multiplier's low would put the
+        best case where the worst case belongs.
+        """
+        corners = (
             self.low * other.low,
-            self.expected * other.expected,
+            self.low * other.high,
+            self.high * other.low,
             self.high * other.high,
         )
+        return Range(min(corners), self.expected * other.expected, max(corners))
 
     def __add__(self, other: Range) -> Range:
         """Combine two independent contributions to the same quantity.
@@ -68,6 +77,14 @@ class Range:
             self.expected - other.expected,
             self.high - other.low,
         )
+
+    def __neg__(self) -> Range:
+        """Flip the interval. The old high becomes the new low, not the new high.
+
+        Used for a removed call site, whose contribution to the delta is a
+        saving. Scaling by -1 would leave the bounds in the wrong order.
+        """
+        return Range(-self.high, -self.expected, -self.low)
 
     def scale(self, factor: float) -> Range:
         """Multiply by a certainty. Negative factors would invert the range."""

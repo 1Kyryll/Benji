@@ -287,3 +287,12 @@ def test_no_frequency_source_is_named_when_nothing_was_declared():
     """Naming a source implies a file was read, right above a note saying none
     was found."""
     assert "frequency:" not in render(report(frequency_source="", config_present=False))
+
+
+def test_a_diff_touching_no_metered_code_says_so():
+    """Nothing changed is not the same as we could not work it out. Saying
+    'unknown' when the answer is plainly zero teaches a reader to distrust the
+    word when it matters."""
+    line = render(Report(coverage=Coverage(0, 0), prices_as_of="2026-07-01")).split("\n")[2]
+    assert "No metered call sites changed" in line
+    assert "unknown" not in line.lower()
