@@ -1,0 +1,41 @@
+# Stage one of two: analyse, and write the result to an artifact.
+#
+# This job runs with no secrets and no write permissions, because on a pull
+# request from a fork it is running code the fork controls. It therefore cannot
+# post the comment it just computed — stage two does that, from a context the
+# fork cannot reach. Doing it in one privileged job is the well-known way to
+# hand a stranger write access to your repository.
+name: chihuahuabot
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  analyse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Both sides of the diff have to be present locally.
+          fetch-depth: 0
+
+      - uses: ./action
+        id: cost
+        with:
+          output: chihuahuabot-report.json
+
+      - name: Record which pull request this belongs to
+        env:
+          NUMBER: ${{ github.event.number }}
+        run: echo "$NUMBER" > pr-number.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chihuahuabot-report
+          path: |
+            chihuahuabot-report.json
+            pr-number.txt
+          retention-days: 3
