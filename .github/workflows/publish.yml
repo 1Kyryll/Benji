@@ -1,0 +1,68 @@
+# Publish to PyPI when a GitHub Release is published.
+#
+# Uses Trusted Publishing: GitHub hands PyPI a short-lived OIDC token proving
+# this workflow, in this repository, produced the files. No API token is stored
+# anywhere, so there is nothing to leak and nothing to rotate.
+#
+# One-time setup on PyPI, before the first release:
+#   pypi.org -> Your projects -> Publishing -> Add a pending publisher
+#     PyPI project name : benji-bot
+#     Owner             : 1Kyryll
+#     Repository        : Benji
+#     Workflow name     : publish.yml
+#     Environment       : pypi
+name: publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Never ship something the tests have not passed on.
+      - run: pip install -e ".[dev]"
+      - run: ruff check . && pytest -q
+
+      - run: pip install build
+      - run: python -m build
+
+      # The version is immutable once uploaded, so a mismatch between the tag
+      # and the package version has to fail here rather than burn the number.
+      - name: Check the tag matches the package version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          VERSION=$(python -c "import tomllib,pathlib;print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          if [ "${TAG#v}" != "$VERSION" ]; then
+            echo "release tag $TAG does not match pyproject version $VERSION" >&2
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write   # the OIDC token Trusted Publishing exchanges
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

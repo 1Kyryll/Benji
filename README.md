@@ -138,6 +138,15 @@ Languages other than Python · own OTLP ingest · agent-loop analysis · merge g
 Telemetry-backed frequency is the destination, not an alternative to the config file: the
 `FrequencySource` interface exists so a Langfuse adapter is an addition rather than a rewrite.
 
+## Release
+
+Publishing runs on a GitHub Release via [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) — no API token is stored anywhere. The workflow runs the tests, checks the release tag matches the version in `pyproject.toml`, and only then uploads.
+
+```bash
+# bump version in pyproject.toml, commit, then
+gh release create v0.1.0 --generate-notes
+```
+
 ## Develop
 
 ```bash

@@ -22,3 +22,6 @@ corpus-report.json
 
 # macOS
 .DS_Store
+
+# build output
+dist/
