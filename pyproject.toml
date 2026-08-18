@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "Predicts the LLM/metered-API cost impact of a code diff and comments it on the PR."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 
 # Analysis modules are stdlib-only by rule. Dependencies belong only to the
 # modules allowed to have them: tokens.py, and later frequency.py, render.py and
