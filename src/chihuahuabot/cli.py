@@ -259,7 +259,9 @@ def build_report(repo: Path, base_ref: str, head_ref: str) -> Report:
             blast=blast_radius(head, changed_files),
             prices_as_of=table.as_of,
             prices_stale=table.is_stale(date.today()),
-            frequency_source=frequency.name,
+            # Naming a source when nothing was read implies a file was read,
+            # directly above a note saying none was found.
+            frequency_source=frequency.name if config.declared else "",
             config_present=config.declared,
         )
 
