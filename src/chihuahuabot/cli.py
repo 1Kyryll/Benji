@@ -40,6 +40,7 @@ from chihuahuabot.index import RepoIndex
 from chihuahuabot.multiplicity import apply_declared, multiplicities
 from chihuahuabot.pricing import PriceTable
 from chihuahuabot.render import BlastRadius, Coverage, Report, SiteChange, render
+from chihuahuabot.terminal import render_terminal
 from chihuahuabot.tokens import estimate_input
 
 SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "site-packages", "build", "dist"}
@@ -103,18 +104,37 @@ def function_key(index: RepoIndex, site: CallSite) -> str | None:
     return None
 
 
+@dataclass
+class Priced:
+    """A site's estimate, plus the pieces a paired delta needs to cancel.
+
+    Keeping the token ranges and the unit prices apart from the finished cost is
+    what lets a model swap be reported as nearly exact: the same token count sits
+    on both sides of the diff, so only the price ratio should survive.
+    """
+
+    estimate: SiteEstimate
+    factors: tuple[Factor, ...]
+    label: str | None = None
+    inputs: Range | None = None
+    outputs: Range | None = None
+    input_price: float | None = None
+    output_price: float | None = None
+
+
 def estimate_site(
     site: CallSite,
     analysis: Analysis,
     table: PriceTable,
     config: Config,
     source_of_frequency,
-) -> tuple[SiteEstimate, tuple[Factor, ...], str | None]:
+) -> Priced:
     """Assemble one call site's three layers. Any of them may be unknown."""
     factors: list[Factor] = []
 
     price = table.lookup(site.provider, site.model)
     per_call: Range | None = None
+    inputs = outputs = None
     if price is not None:
         tokens = estimate_input(site.content, site.model)
         ceiling = dict(site.literals).get("max_tokens")
@@ -154,7 +174,15 @@ def estimate_site(
         factors=tuple(factors),
         confidence=site.confidence,
     )
-    return estimate, tuple(factors), label
+    return Priced(
+        estimate=estimate,
+        factors=tuple(factors),
+        label=label,
+        inputs=inputs,
+        outputs=outputs,
+        input_price=price.input_per_mtok if price else None,
+        output_price=price.output_per_mtok if price else None,
+    )
 
 
 def blast_radius(head: Analysis, changed_files: set[str]) -> BlastRadius | None:
@@ -192,6 +220,48 @@ def blast_radius(head: Analysis, changed_files: set[str]) -> BlastRadius | None:
     return best
 
 
+def edited_delta(was, now, estimate) -> Range | None:
+    """The monthly change for one edited call site.
+
+    Where the two sides share a factor, it multiplies the difference instead of
+    being subtracted twice. A model swap with an untouched prompt is the case
+    that matters: the same token count sits on both sides, so only the price
+    ratio survives and the answer is nearly exact even if the token estimate is
+    badly wrong. Subtracting two finished costs would instead widen the result
+    by the full token uncertainty, twice.
+    """
+    if was is None or now is None:
+        return estimate.per_month
+
+    before, after = was.estimate, now.estimate
+    shared_factors = (
+        before.multiplicity == after.multiplicity and before.frequency == after.frequency
+    )
+    same_prompt = (
+        was.inputs is not None
+        and was.inputs == now.inputs
+        and was.outputs == now.outputs
+        and None not in (was.input_price, now.input_price, was.output_price, now.output_price)
+    )
+
+    if shared_factors and after.multiplicity is not None and after.frequency is not None:
+        if same_prompt:
+            per_call = (
+                now.inputs * Range.exact(now.input_price - was.input_price)
+                + now.outputs * Range.exact(now.output_price - was.output_price)
+            ).scale(1 / 1_000_000)
+        elif before.cost_per_call is not None and after.cost_per_call is not None:
+            per_call = after.cost_per_call - before.cost_per_call
+        else:
+            return after.per_month
+        return (per_call * after.multiplicity * after.frequency).scale(30.0)
+
+    monthly, previously = after.per_month, before.per_month
+    if monthly is not None and previously is not None:
+        return monthly - previously
+    return monthly
+
+
 def build_report(repo: Path, base_ref: str, head_ref: str) -> Report:
     table = PriceTable.load()
     with tempfile.TemporaryDirectory() as scratch:
@@ -210,13 +280,16 @@ def build_report(repo: Path, base_ref: str, head_ref: str) -> Report:
 
         changes: list[SiteChange] = []
         head_estimates: list[SiteEstimate] = []
+        head_priced: dict[str, Priced] = {}
         base_estimates: list[SiteEstimate] = []
         factors: list[Factor] = []
 
         for site in head.sites:
-            estimate, site_factors, label = estimate_site(site, head, table, config, frequency)
+            priced = estimate_site(site, head, table, config, frequency)
+            estimate, label = priced.estimate, priced.label
+            head_priced[site.id] = priced
             head_estimates.append(estimate)
-            factors.extend(site_factors)
+            factors.extend(priced.factors)
             matched = next((m for m in diff.matched if m.head.id == site.id), None)
             if matched is None:
                 changes.append(
@@ -232,20 +305,49 @@ def build_report(repo: Path, base_ref: str, head_ref: str) -> Report:
                     )
                 )
 
+        base_by_id: dict[str, Priced] = {}
         for site in base.sites:
-            estimate, _, _ = estimate_site(site, base, table, config, frequency)
+            priced = estimate_site(site, base, table, config, frequency)
+            estimate = priced.estimate
             base_estimates.append(estimate)
+            matched = next((m for m in diff.matched if m.base.id == site.id), None)
+            if matched is not None:
+                base_by_id[matched.head.id] = priced
             if not any(m.base.id == site.id for m in diff.matched):
                 changes.append(SiteChange("removed", site.id, "", estimate))
 
-        after = aggregate(head_estimates).per_month
-        before = aggregate(base_estimates).per_month
+        # Deltas are computed per changed site, not as one total minus another.
+        #
+        # Errors cancel in a delta. Swapping a model without touching the prompt
+        # is nearly exact even with a 50% token error, because the same wrong
+        # token count sits on both sides and only the price ratio survives.
+        # Subtracting two whole-repository totals throws that away: it treats the
+        # two sides as independent and reports a config-only commit, which
+        # changes nothing at all, as somewhere between saving $8,386 and costing
+        # $8,386.
         delta: Range | None = None
-        if after is not None and before is not None:
-            delta = after - before
-        elif after is not None:
-            delta = after
 
+        def contribute(piece: Range | None) -> None:
+            nonlocal delta
+            if piece is None:
+                return
+            delta = piece if delta is None else delta + piece
+
+        for change in changes:
+            estimate = change.estimate
+            if estimate is None:
+                continue
+            if change.kind == "added":
+                contribute(estimate.per_month)
+            elif change.kind == "removed":
+                monthly = estimate.per_month
+                contribute(-monthly if monthly is not None else None)
+            elif change.kind == "edited":
+                was = base_by_id.get(change.site_id)
+                now = head_priced.get(change.site_id)
+                contribute(edited_delta(was, now, estimate))
+
+        after = aggregate(head_estimates).per_month
         spread = 1.0
         if after is not None and after.low > 0:
             spread = after.spread
@@ -274,7 +376,14 @@ def main(argv: list[str] | None = None) -> int:
     diff.add_argument("base")
     diff.add_argument("head")
     diff.add_argument("--repo", type=Path, default=Path.cwd())
-    diff.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    diff.add_argument(
+        "--format",
+        choices=("auto", "terminal", "markdown", "json"),
+        default="auto",
+        help="auto reads well in a console and emits markdown when piped or "
+        "written to a file, which is what a PR comment needs",
+    )
+    diff.add_argument("--no-color", action="store_true", help="disable ANSI styling")
     diff.add_argument("--output", type=Path)
     diff.add_argument(
         "--fail-on-empty",
@@ -286,7 +395,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     report = build_report(args.repo, args.base, args.head)
 
-    if args.format == "json":
+    # A human at a terminal wants something readable; a pipe or a file is almost
+    # always on its way to a PR comment, which has to be markdown.
+    chosen = args.format
+    if chosen == "auto":
+        chosen = "terminal" if (not args.output and sys.stdout.isatty()) else "markdown"
+
+    if args.format == "json" or chosen == "json":
         payload = {
             "empty": report.empty,
             "markdown": render(report),
@@ -306,6 +421,8 @@ def main(argv: list[str] | None = None) -> int:
             ],
         }
         text = json.dumps(payload, indent=2)
+    elif chosen == "terminal":
+        text = render_terminal(report, colour=not args.no_color)
     else:
         text = render(report)
 
