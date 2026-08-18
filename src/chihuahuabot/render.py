@@ -153,6 +153,11 @@ class Report:
 
 
 def headline(report: Report) -> str:
+    # Nothing changed is not the same as we could not work it out. Saying
+    # "unknown" when the answer is plainly zero teaches a reader to distrust the
+    # word when it matters.
+    if not report.changes:
+        return "**No metered call sites changed.**"
     if report.delta is None:
         return (
             "**Cost impact unknown.** Call sites changed, but at least one layer "
