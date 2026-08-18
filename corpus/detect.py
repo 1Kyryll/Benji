@@ -136,6 +136,13 @@ BARE_NAMES = frozenset(
 #
 # Matched against string constants in the call's own arguments, including the
 # literal parts of f-strings. Endpoint paths are specific enough to stay quiet.
+# Receivers that are metered when called directly: `self.llm(messages)`. Narrow
+# on purpose — `self.model(x)` is a forward pass in every piece of PyTorch ever
+# written, so `model` is excluded.
+CALLABLE_RECEIVERS = frozenset(
+    {"llm", "_llm", "chat_llm", "llm_client", "language_model", "chat_model"}
+)
+
 HTTP_VERBS = frozenset({"post", "request", "stream"})
 
 ENDPOINT_HINTS = (
@@ -238,6 +245,10 @@ def classify(path: tuple[str, ...], call: ast.Call | None = None) -> tuple[str, 
     lowered = [segment.lower() for segment in path]
     tail = lowered[-1]
     context = lowered[:-1]
+
+    # The model object called directly, rather than through a method.
+    if tail in CALLABLE_RECEIVERS:
+        return ("callable",)
 
     if len(path) == 1:
         # Case-sensitive on purpose — see BARE_NAMES.

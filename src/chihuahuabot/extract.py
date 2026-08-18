@@ -65,6 +65,17 @@ FRAMEWORK_RECEIVERS = frozenset(
     {"llm", "_llm", "model", "_model", "chat_model", "chat_llm", "llm_client", "language_model"}
 )
 
+# Receivers that are metered when *called directly*: `self.llm(messages)` rather
+# than `self.llm.invoke(messages)`. LangChain models are callable, and older code
+# uses this form everywhere.
+#
+# Narrower than FRAMEWORK_RECEIVERS on purpose. `model` and `_model` are excluded
+# because `self.model(x)` is a forward pass in every piece of PyTorch ever
+# written, and a false positive there would price a tensor multiply.
+FRAMEWORK_CALLABLE_RECEIVERS = frozenset(
+    {"llm", "_llm", "chat_llm", "llm_client", "language_model", "chat_model"}
+)
+
 FRAMEWORK_CONFIDENCE = 0.7
 
 HTTP_VERBS = frozenset({"post", "request", "stream"})
@@ -222,9 +233,21 @@ def match_sdk(path: tuple[str, ...]) -> tuple[str, str] | None:
 def match_framework(path: tuple[str, ...]) -> tuple[str, str] | None:
     """Resolve a framework-shaped call from its receiver name.
 
-    ``llm.invoke(...)`` and ``self._llm.chat(...)``. Weaker evidence than a type,
-    which is why the resulting site carries ``FRAMEWORK_CONFIDENCE``.
+    Three forms, all LangChain-shaped: ``llm.invoke(...)``,
+    ``self._llm.chat(...)``, and ``self.llm(messages)`` — the model object called
+    directly, which is what older code does and what a method-name detector
+    cannot see at all.
+
+    Weaker evidence than a type, which is why these sites carry
+    ``FRAMEWORK_CONFIDENCE``.
     """
+    if not path:
+        return None
+
+    # The callable-object form. The receiver *is* the call target.
+    if path[-1].lower() in FRAMEWORK_CALLABLE_RECEIVERS:
+        return ("framework", "call")
+
     if len(path) < 2 or path[-1] not in FRAMEWORK_VERBS:
         return None
     if path[-2].lower() not in FRAMEWORK_RECEIVERS:
@@ -334,7 +357,7 @@ class CallSiteVisitor(ast.NodeVisitor):
             model = kwarg_literal(node, "model")
             model = model if isinstance(model, str) else None
             confidence = FRAMEWORK_CONFIDENCE
-            literals = (("receiver", path[-2]),)
+            literals = (("receiver", path[-2] if len(path) > 1 else path[-1]),)
         else:
             return None
 
