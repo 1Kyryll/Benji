@@ -1,0 +1,56 @@
+# Price table for metered model calls.
+#
+# All figures are USD per 1,000,000 tokens, the unit both OpenAI and Anthropic
+# publish. `as_of` is rendered into the PR comment footer: a stale table
+# producing a confident wrong number is exactly the failure the range machinery
+# exists to prevent, so its age has to be visible rather than implied.
+#
+# VERIFY BEFORE RELEASE. These are transcribed from published pricing pages and
+# providers change them without notice. Re-pin deliberately and move `as_of`
+# when you do.
+
+as_of = "2026-07-01"
+stale_after_days = 90
+
+[openai."gpt-4o"]
+input = 2.50
+output = 10.00
+cached_input = 1.25
+
+[openai."gpt-4o-mini"]
+input = 0.15
+output = 0.60
+cached_input = 0.075
+
+[openai."text-embedding-3-small"]
+input = 0.02
+output = 0.0
+
+[openai."text-embedding-3-large"]
+input = 0.13
+output = 0.0
+
+[anthropic."claude-sonnet-4"]
+input = 3.00
+output = 15.00
+cached_input = 0.30
+
+[anthropic."claude-opus-4"]
+input = 15.00
+output = 75.00
+cached_input = 1.50
+
+[anthropic."claude-3-5-sonnet"]
+input = 3.00
+output = 15.00
+cached_input = 0.30
+
+[anthropic."claude-3-5-haiku"]
+input = 0.80
+output = 4.00
+cached_input = 0.08
+
+[anthropic."claude-3-opus"]
+input = 15.00
+output = 75.00
+cached_input = 1.50
