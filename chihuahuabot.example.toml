@@ -1,0 +1,35 @@
+# ChihuahuaBot configuration. Copy to `chihuahuabot.toml` in your repository root.
+#
+# Everything here is a statement about production that no amount of reading the
+# source can recover. Nothing is required: without this file the bot still
+# reports cost per call and how often each call fires per invocation, it just
+# cannot reach dollars per day, and it says so rather than guessing.
+
+# How often your entry points run. Declare handlers, cron jobs and workers —
+# not individual call sites. The bot carries these numbers down the call graph
+# to every metered call they reach, so you never have to know how often some
+# client method deep in the stack gets invoked.
+#
+# Keys are `module:qualified_function`, matching what the bot reports.
+[frequency]
+
+# A number you are sure of.
+"workers.digest:run" = 1
+
+# A number that varies. `expected` defaults to the midpoint if you omit it.
+# Declaring the spread is worth doing: when a range comes out unhelpfully wide,
+# the bot names the factor driving it, and that is usually one of these.
+"api.tickets:TicketService.handle" = { low = 2000, expected = 5000, high = 20000 }
+
+# How big your loops are. `for org in orgs:` multiplies the cost of everything
+# inside it, and the source does not say by how much.
+#
+# Keys are `enclosing_function:expression`, or just `expression` to declare one
+# size everywhere it appears. The bot prints the exact key when it needs one.
+[iterables]
+
+"handle:orgs" = { low = 3, expected = 40, high = 500 }
+
+# Prices come from a table shipped with the bot, stamped with the date it was
+# last checked. Point this at your own file if you have negotiated rates.
+# prices = "prices.toml"

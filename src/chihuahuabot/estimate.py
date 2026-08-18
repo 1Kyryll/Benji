@@ -42,6 +42,19 @@ class Range:
             self.high * other.high,
         )
 
+    def __add__(self, other: Range) -> Range:
+        """Combine two independent contributions to the same quantity.
+
+        Used where several declared entry points reach one call site: the traffic
+        is the sum of theirs. Adding lows to lows is as naive as multiplying them
+        and for the same reason — the alternative is inventing a correlation.
+        """
+        return Range(
+            self.low + other.low,
+            self.expected + other.expected,
+            self.high + other.high,
+        )
+
     @property
     def is_point(self) -> bool:
         return self.low == self.high
