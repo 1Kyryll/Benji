@@ -10,9 +10,11 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 
-# Analysis modules are stdlib-only by rule. Runtime deps land later, in the
-# modules allowed to have them (tokens.py, frequency.py, render.py, action/).
-dependencies = []
+# Analysis modules are stdlib-only by rule. Dependencies belong only to the
+# modules allowed to have them: tokens.py, and later frequency.py, render.py and
+# action/. tiktoken is the first, and tokens.py degrades to character counting
+# when it is missing rather than failing.
+dependencies = ["tiktoken>=0.7"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
@@ -22,6 +24,9 @@ chihuahuabot = "chihuahuabot.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
+
+[tool.setuptools.package-data]
+chihuahuabot = ["*.toml"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
