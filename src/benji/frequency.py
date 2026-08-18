@@ -34,9 +34,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from chihuahuabot.estimate import Range
+from benji.estimate import Range
 
-DEFAULT_CONFIG_NAMES = ("chihuahuabot.toml", ".chihuahuabot.toml")
+DEFAULT_CONFIG_NAMES = ("benji.toml", ".benji.toml")
 
 
 def parse_range(value: object, where: str) -> Range:
@@ -131,7 +131,7 @@ class ConfigFrequencySource:
     """Declared numbers. Honest about being assumptions, not observations."""
 
     config: Config
-    name: str = "declared (chihuahuabot.toml)"
+    name: str = "declared (benji.toml)"
 
     def invocations_per_day(self, function_key: str) -> Range | None:
         return self.config.frequency.get(function_key)

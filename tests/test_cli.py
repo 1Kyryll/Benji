@@ -1,6 +1,6 @@
 """End to end: two commits in a real repository, one comment out.
 
-Every other test exercises a stage in isolation. These drive `chihuahuabot diff`
+Every other test exercises a stage in isolation. These drive `benji diff`
 against an actual git repository, because the failures worth catching here are
 the ones that only appear when the stages meet.
 """
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from chihuahuabot.cli import build_report, main
+from benji.cli import build_report, main
 
 
 def module(model: str, func: str = "handle") -> str:
@@ -41,7 +41,7 @@ def repo(tmp_path: Path) -> Path:
     git(root, "config", "user.email", "t@example.com")
     git(root, "config", "user.name", "t")
     (root / "api.py").write_text(module("gpt-4o-mini"))
-    (root / "chihuahuabot.toml").write_text('[frequency]\n"api:handle" = 5000\n')
+    (root / "benji.toml").write_text('[frequency]\n"api:handle" = 5000\n')
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "base")
     return root
@@ -126,7 +126,7 @@ def test_analysis_covers_files_the_diff_never_touched(repo: Path):
 def test_markdown_is_the_default_output(repo: Path, capsys):
     commit(repo, "api.py", module("gpt-4o"))
     assert main(["diff", "HEAD~1", "HEAD", "--repo", str(repo)]) == 0
-    assert "ChihuahuaBot" in capsys.readouterr().out
+    assert "Benji" in capsys.readouterr().out
 
 
 def test_json_output_carries_the_markdown_and_the_delta(repo: Path, tmp_path: Path):
@@ -135,7 +135,7 @@ def test_json_output_carries_the_markdown_and_the_delta(repo: Path, tmp_path: Pa
     out = tmp_path / "report.json"
     main(["diff", "HEAD~1", "HEAD", "--repo", str(repo), "--format", "json", "--output", str(out)])
     payload = json.loads(out.read_text())
-    assert "ChihuahuaBot" in payload["markdown"]
+    assert "Benji" in payload["markdown"]
     assert payload["delta"]["high"] >= payload["delta"]["low"]
     assert payload["empty"] is False
 

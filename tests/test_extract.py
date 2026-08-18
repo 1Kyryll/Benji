@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from chihuahuabot.extract import CallSite, attr_path, extract, kwarg_literal
+from benji.extract import CallSite, attr_path, extract, kwarg_literal
 
 FIXTURE = Path(__file__).parent / "fixtures" / "simple.py"
 

@@ -27,7 +27,7 @@ import ast
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from chihuahuabot.extract import WrapperHint, attr_path, extract
+from benji.extract import WrapperHint, attr_path, extract
 
 MAX_DEPTH = 5
 
@@ -534,7 +534,7 @@ class RepoIndex:
 
         Ordinals come from the extractor so there is one implementation of
         identity. Note the consequence: an ordinal counts the calls *this version
-        of ChihuahuaBot recognises*, so improving the wrapper index can renumber
+        of Benji recognises*, so improving the wrapper index can renumber
         sites. That is a versioning concern for the telemetry index, not a bug —
         and it is why the AST index is stamped per commit.
         """

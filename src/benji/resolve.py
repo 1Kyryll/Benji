@@ -15,12 +15,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from chihuahuabot.extract import extract
-from chihuahuabot.index import RepoIndex
+from benji.extract import extract
+from benji.index import RepoIndex
 
 
 class CorpusResolver:
-    name = "chihuahuabot.index (build step 2: wrapper index + reverse call graph)"
+    name = "benji.index (build step 2: wrapper index + reverse call graph)"
 
     def __init__(self) -> None:
         self._index: RepoIndex | None = None

@@ -51,7 +51,7 @@ class NullResolver:
 
 def load_resolver() -> object:
     try:
-        from chihuahuabot.resolve import CorpusResolver
+        from benji.resolve import CorpusResolver
     except ImportError:
         return NullResolver()
     return CorpusResolver()
@@ -204,7 +204,7 @@ def print_samples(scores: list[RepoScore]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Score ChihuahuaBot coverage over the corpus.")
+    parser = argparse.ArgumentParser(description="Score Benji coverage over the corpus.")
     parser.add_argument("--repo", help="substring match; score only matching repos")
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE, help="checkout cache dir")
     parser.add_argument("--sample", type=int, default=0, help="print N sampled candidates per repo")

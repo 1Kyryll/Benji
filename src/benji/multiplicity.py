@@ -32,8 +32,8 @@ import ast
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from chihuahuabot.estimate import Range
-from chihuahuabot.extract import extract
+from benji.estimate import Range
+from benji.extract import extract
 
 # A guarded call happens or it does not, and nothing in the source says which.
 # The expected value is a maximum-entropy coin flip, not a measurement, and it

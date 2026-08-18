@@ -15,7 +15,7 @@ import os
 import shutil
 import sys
 
-from chihuahuabot.render import Report, SiteChange, count, money, money_range, multiplier
+from benji.render import Report, SiteChange, count, money, money_range, multiplier
 
 SYMBOLS = {"added": "+", "removed": "-", "edited": "~", "affected": "·"}
 
@@ -145,7 +145,7 @@ def unknown_block(report: Report, style: Style, width: int) -> list[str]:
     if factor.source == "prior" and section:
         lines += [
             "",
-            style("  add to chihuahuabot.toml:", "dim"),
+            style("  add to benji.toml:", "dim"),
             style(f"      [{section}]", "green"),
             style(f'      "{factor.name}" = ' + "{ low = ?, expected = ?, high = ? }", "green"),
         ]
@@ -160,7 +160,7 @@ def render_terminal(report: Report, colour: bool | None = None, width: int | Non
     style = Style(use_colour() if colour is None else colour)
     width = width or min(shutil.get_terminal_size((80, 24)).columns, 88)
 
-    out: list[str] = ["", style("  💸 ChihuahuaBot", "bold") + style("  cost impact", "dim"), ""]
+    out: list[str] = ["", style("  💸 Benji", "bold") + style("  cost impact", "dim"), ""]
     out += headline(report, style)
 
     if report.changes:
@@ -190,7 +190,7 @@ def render_terminal(report: Report, colour: bool | None = None, width: int | Non
     if not report.config_present:
         out += [
             "",
-            style("  NO CONFIG", "bold", "yellow") + style("   chihuahuabot.toml not found", "dim"),
+            style("  NO CONFIG", "bold", "yellow") + style("   benji.toml not found", "dim"),
             style("  cost per call and multiplicity are exact; dollars per day need", "dim"),
             style("  you to declare how often your entry points run", "dim"),
         ]

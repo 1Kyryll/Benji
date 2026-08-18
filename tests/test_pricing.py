@@ -10,7 +10,7 @@ from datetime import date
 
 import pytest
 
-from chihuahuabot.pricing import PriceTable, cost
+from benji.pricing import PriceTable, cost
 
 
 @pytest.fixture(scope="module")

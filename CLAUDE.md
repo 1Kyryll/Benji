@@ -1,10 +1,12 @@
 # CLAUDE.md
 
-**ChihuahuaBot** predicts the LLM/metered-API cost impact of a code diff and comments it on the PR.
+**Benji** predicts the LLM/metered-API cost impact of a code diff and comments it on the PR.
 *Infracost prices the infrastructure you declare; this prices the code that actually spends.*
 
-Open source, for the community. `costbot` is a **deprecated initial name** — it must not appear
-in code, CLI, config, or docs. The package is `chihuahuabot`.
+Open source, for the community. The project is **Benji**, the import package and CLI are
+`benji`, the repository is `1Kyryll/Benji`, and the PyPI distribution is **`benji-bot`** —
+`benji` is taken there by an unrelated backup tool. `costbot` and `chihuahuabot` are **deprecated earlier names**
+and must not appear in code, CLI, config, or docs.
 
 ## How to work here
 
@@ -26,7 +28,7 @@ No runtime deps in the analysis modules — `ast` only.
 ## Layout
 
 ```
-src/chihuahuabot/
+src/benji/
   extract.py        AST → call sites, loose + strict detectors   stdlib only
   identity.py       call-site IDs, matching across versions      stdlib only
   index.py          wrapper index + call graph + reverse graph   stdlib only
@@ -36,7 +38,7 @@ src/chihuahuabot/
   frequency.py      FrequencySource protocol + adapters          deps allowed
   estimate.py       range propagation, dominant uncertainty      stdlib only
   render.py         PR comment markdown
-  cli.py            python -m chihuahuabot.cli diff <base> <head>
+  cli.py            python -m benji.cli diff <base> <head>
 corpus/
   manifest.toml     pinned OSS repos — the coverage denominator
   detect.py         loose detector (candidates)
@@ -49,10 +51,10 @@ action/             GitHub Action entrypoint (two-workflow, fork-safe)
 `pricing.py` and `tokens.py` are split deliberately: the no-runtime-deps rule names `pricing`,
 but tokenisation needs `tiktoken`. Table and arithmetic stay stdlib; the tokeniser does not.
 
-src layout: the wheel contains `chihuahuabot` only. `corpus/` is a development harness, kept
+src layout: the wheel contains `benji` only. `corpus/` is a development harness, kept
 importable in tests via `pythonpath` and never shipped.
 
-`corpus/` must not import `chihuahuabot` except through the resolver plug point in `score.py`.
+`corpus/` must not import `benji` except through the resolver plug point in `score.py`.
 A measuring instrument that shares helpers with the system under test agrees with its own bugs.
 
 ## Commands
@@ -63,7 +65,7 @@ pytest -q
 ruff check . && ruff format .
 python -m corpus.score                        # coverage across pinned repos
 python -m corpus.score --repo aider --sample 20
-python -m chihuahuabot.cli diff HEAD~1 HEAD
+python -m benji.cli diff HEAD~1 HEAD
 ```
 
 ## Invariants
@@ -78,7 +80,7 @@ naming and status are not.
 - Three layers, never collapsed: `cost/call × multiplicity × frequency`. Tokenizer, AST, telemetry
   respectively.
 - **Frequency is adapter-based, not config-based.** `FrequencySource` is an interface;
-  `ConfigFrequencySource` (reads `chihuahuabot.yml`) is implementation #1 and
+  `ConfigFrequencySource` (reads `benji.yml`) is implementation #1 and
   `LangfuseFrequencySource` is where this is going. The MVP ships config because install friction
   is the binding constraint for a community tool, not because declared numbers are good enough.
 - **Never emit a point estimate.** Carry `(low, expected, high)`; name the dominant uncertainty.

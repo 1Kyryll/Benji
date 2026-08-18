@@ -15,7 +15,7 @@ from __future__ import annotations
 import ast
 import warnings
 
-from chihuahuabot.extract import attr_path
+from benji.extract import attr_path
 
 STRONG_VERBS = frozenset(
     {

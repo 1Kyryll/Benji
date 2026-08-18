@@ -1,14 +1,35 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "chihuahuabot"
+# Distribution name only. `benji` is taken on PyPI by an unrelated backup
+# tool, so the package ships as benji-bot and imports as benji — the same
+# split as python-dateutil, pillow and half of PyPI.
+name = "benji-bot"
 version = "0.0.1"
 description = "Predicts the LLM/metered-API cost impact of a code diff and comments it on the PR."
 readme = "README.md"
+authors = [{ name = "1Kyryll" }]
+keywords = ["llm", "cost", "openai", "anthropic", "pull-request", "static-analysis", "github-action", "finops"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Version Control :: Git",
+]
 requires-python = ">=3.11"
-license = { file = "LICENSE" }
+# An SPDX expression rather than an inlined file: the old form pasted the
+# whole licence text into the metadata, where PyPI renders it as a wall of
+# capitals above the README.
+license = "MIT"
+license-files = ["LICENSE"]
 
 # Analysis modules are stdlib-only by rule. Dependencies belong only to the
 # modules allowed to have them: tokens.py, and later frequency.py, render.py and
@@ -19,14 +40,19 @@ dependencies = ["tiktoken>=0.7"]
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
 
+[project.urls]
+Homepage = "https://github.com/1Kyryll/Benji"
+Repository = "https://github.com/1Kyryll/Benji"
+Issues = "https://github.com/1Kyryll/Benji/issues"
+
 [project.scripts]
-chihuahuabot = "chihuahuabot.cli:main"
+benji = "benji.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
 
 [tool.setuptools.package-data]
-chihuahuabot = ["*.toml"]
+benji = ["*.toml"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from chihuahuabot.estimate import (
+from benji.estimate import (
     DEFAULT_SLOT_PRIOR,
     Factor,
     Range,

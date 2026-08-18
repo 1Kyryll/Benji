@@ -18,10 +18,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from chihuahuabot.estimate import Factor, Range, SiteEstimate
+from benji.estimate import Factor, Range, SiteEstimate
 
-MARKER = "<!-- chihuahuabot-comment -->"
-TITLE = "## 💸 ChihuahuaBot — cost impact"
+MARKER = "<!-- benji-comment -->"
+TITLE = "## 💸 Benji — cost impact"
 
 # Below this, a range is tight enough that naming its dominant factor is noise.
 NOTEWORTHY_SPREAD = 2.0
@@ -220,7 +220,7 @@ def uncertainty(report: Report) -> str:
         # length of `ticket.body` sends them to write a key nothing will read.
         section = {"multiplicity": "iterables", "frequency": "frequency"}.get(factor.layer)
         if section:
-            lead += f"\n> Declare it under `[{section}]` in `chihuahuabot.toml`."
+            lead += f"\n> Declare it under `[{section}]` in `benji.toml`."
         else:
             lead += (
                 "\n> This is prompt text whose length varies per call. Production "
@@ -261,7 +261,7 @@ def render(report: Report) -> str:
 
     if not report.config_present:
         blocks.append(
-            "> No `chihuahuabot.toml` found, so nothing declares how often this code runs. "
+            "> No `benji.toml` found, so nothing declares how often this code runs. "
             "Cost per call and multiplicity are still exact; dollars per day are not available."
         )
 
