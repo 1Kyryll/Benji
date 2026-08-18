@@ -215,7 +215,17 @@ def uncertainty(report: Report) -> str:
             f"\n> Pinning it narrows this from {report.total_spread:.0f}× to about {narrowed:.1f}×."
         )
     if factor.source == "prior":
-        lead += "\n> Declare it under `[iterables]` or `[frequency]` in `chihuahuabot.toml`."
+        # Name the section that can actually hold this. A prompt interpolation is
+        # not a loop bound, and pointing someone at [iterables] to declare the
+        # length of `ticket.body` sends them to write a key nothing will read.
+        section = {"multiplicity": "iterables", "frequency": "frequency"}.get(factor.layer)
+        if section:
+            lead += f"\n> Declare it under `[{section}]` in `chihuahuabot.toml`."
+        else:
+            lead += (
+                "\n> This is prompt text whose length varies per call. Production "
+                "telemetry is what settles it; there is no static answer."
+            )
     return lead
 
 

@@ -296,3 +296,25 @@ def test_a_diff_touching_no_metered_code_says_so():
     line = render(Report(coverage=Coverage(0, 0), prices_as_of="2026-07-01")).split("\n")[2]
     assert "No metered call sites changed" in line
     assert "unknown" not in line.lower()
+
+
+def test_an_unknown_loop_bound_points_at_the_section_that_holds_it():
+    body = render(
+        report(
+            dominant=Factor("orgs", "multiplicity", Range(3, 40, 500), "prior"), total_spread=13.0
+        )
+    )
+    assert "[iterables]" in body
+
+
+def test_a_prompt_interpolation_is_not_sent_to_a_config_section():
+    """`ticket.body` is not a loop bound. Pointing someone at [iterables] to
+    declare its length sends them to write a key nothing will read."""
+    body = render(
+        report(
+            dominant=Factor("ticket.body", "cost", Range(20, 200, 4000), "prior"),
+            total_spread=200.0,
+        )
+    )
+    assert "[iterables]" not in body
+    assert "telemetry" in body
