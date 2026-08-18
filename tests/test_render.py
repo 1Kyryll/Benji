@@ -267,3 +267,23 @@ def test_a_delta_crossing_zero_still_reports_both_ends():
     """The honest statement is that it could go either way."""
     body = render(report(delta=Range(-462, 299, 8186)))
     assert "−$462 to +$8,186" in body
+
+
+# --- blast radius counts call sites, not callers ---------------------------
+
+
+def test_blast_radius_counts_call_sites_not_callers():
+    """Twenty-four functions reaching one LLM call is one affected call site.
+    Reporting twenty-four would be the confidently wrong number this project
+    exists to avoid."""
+    assert BlastRadius("AI.backoff_inference", sites=1, files=1, callers=24).worth_saying is False
+
+
+def test_a_change_reaching_many_sites_is_still_announced():
+    assert BlastRadius("LLMClient.chat", sites=47, files=12, callers=61).worth_saying
+
+
+def test_no_frequency_source_is_named_when_nothing_was_declared():
+    """Naming a source implies a file was read, right above a note saying none
+    was found."""
+    assert "frequency:" not in render(report(frequency_source="", config_present=False))
