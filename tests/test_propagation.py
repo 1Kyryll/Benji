@@ -220,3 +220,21 @@ def test_a_total_blames_the_widest_factor_across_every_site():
 
 def test_a_total_with_nothing_priced_is_none_not_zero():
     assert aggregate([estimate(frequency=None)]).per_month is None
+
+
+# --- deltas -----------------------------------------------------------------
+
+
+def test_negating_a_range_flips_it():
+    """A removed call site is a saving; the old high becomes the new low."""
+    assert -Range(10, 20, 30) == Range(-30, -20, -10)
+
+
+def test_a_signed_range_multiplies_over_all_corners():
+    """A cost delta can be negative. Multiplying its low by a multiplier's low
+    would put the best case where the worst case belongs."""
+    assert Range(-2, 0, 2) * Range(0, 0.5, 1) == Range(-2, 0, 2)
+
+
+def test_non_negative_multiplication_is_unchanged():
+    assert Range(1, 2, 3) * Range(10, 20, 30) == Range(10, 40, 90)
