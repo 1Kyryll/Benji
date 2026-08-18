@@ -105,15 +105,24 @@ class Coverage:
 
 @dataclass(frozen=True)
 class BlastRadius:
-    """The headline nobody else can produce: a diff that is not local."""
+    """The headline nobody else can produce: a diff that is not local.
+
+    ``sites`` counts **metered call sites** whose cost this change moves, not
+    the functions that reach it. Those are different numbers and conflating them
+    produced a headline claiming twenty-four call sites in a repository that
+    contains one. ``callers`` keeps the function count, which is real and
+    interesting, under a name that says what it is.
+    """
 
     function: str
     sites: int
     files: int
+    callers: int = 0
     changed_lines: int = 0
 
     @property
     def worth_saying(self) -> bool:
+        """Only when the change genuinely reaches beyond its own call site."""
         return self.sites > 1
 
 

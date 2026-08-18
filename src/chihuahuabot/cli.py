@@ -157,21 +157,35 @@ def estimate_site(
     return estimate, tuple(factors), label
 
 
-def blast_radius(base: Analysis, head: Analysis, changed_files: set[str]) -> BlastRadius | None:
-    """Which call sites a change reaches, including ones the diff never touched."""
+def blast_radius(head: Analysis, changed_files: set[str]) -> BlastRadius | None:
+    """Which metered call sites a change reaches, including untouched files.
+
+    Counts call sites, not callers. A function that reaches the changed code but
+    holds no metered call of its own costs nothing extra, and counting it
+    inflates the headline: gpt-engineer has twenty-four functions reaching its
+    single LLM call, and reporting "affects 24 call sites" in a repository that
+    contains exactly one is the confidently wrong number this project exists to
+    avoid.
+    """
+    site_owner: dict[str, str] = {}
+    for site in head.sites:
+        key = function_key(head.index, site)
+        if key is not None:
+            site_owner[site.id] = key
+
     best: BlastRadius | None = None
     for key, info in head.index.functions.items():
         if info.file not in changed_files:
             continue
-        reached = head.index.blast_radius(key)
-        if not reached:
+        reached = head.index.blast_radius(key) | {key}
+        affected = [site for site in head.sites if site_owner.get(site.id) in reached]
+        if not affected:
             continue
-        files = {head.index.functions[k].file for k in reached if k in head.index.functions}
         candidate = BlastRadius(
             function=info.qualname,
-            sites=len(reached),
-            files=len(files),
-            changed_lines=0,
+            sites=len(affected),
+            files=len({site.file for site in affected}),
+            callers=len(reached) - 1,
         )
         if best is None or candidate.sites > best.sites:
             best = candidate
@@ -242,10 +256,12 @@ def build_report(repo: Path, base_ref: str, head_ref: str) -> Report:
             dominant=dominant(factors),
             total_spread=spread,
             coverage=Coverage(analysed=len(head.sites), candidates=head.candidates),
-            blast=blast_radius(base, head, changed_files),
+            blast=blast_radius(head, changed_files),
             prices_as_of=table.as_of,
             prices_stale=table.is_stale(date.today()),
-            frequency_source=frequency.name,
+            # Naming a source when nothing was read implies a file was read,
+            # directly above a note saying none was found.
+            frequency_source=frequency.name if config.declared else "",
             config_present=config.declared,
         )
 

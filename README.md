@@ -120,7 +120,7 @@ Python, OpenAI and Anthropic, in four shapes:
 | SDK | `client.chat.completions.create(model=...)` | exact |
 | raw HTTP | `session.post(f"{url}/v1/chat/completions", json={"model": ...})` | exact |
 | first-party wrapper | `self.llm.chat(...)` resolved to the SDK call underneath | decays with depth |
-| framework | `llm.invoke(...)` — LangChain and friends | reduced |
+| framework | `llm.invoke(...)`, or `self.llm(messages)` — LangChain and friends | reduced |
 
 Wrapper resolution follows attribute types from annotations, constructor assignments, module
 singletons and local assignments, stopping at a metered call, a cycle, depth 5, or the repository
@@ -129,7 +129,7 @@ boundary. It never parses `site-packages`.
 **Editing a wrapper is not a local change.** A reverse call graph finds every site that reaches the
 function you touched, across files the diff never opened.
 
-Measured on 11 real open-source Python applications: **76% of candidate call sites resolved**.
+Measured on 11 real open-source Python applications: **78% of candidate call sites resolved**.
 
 ## Not in this version
 

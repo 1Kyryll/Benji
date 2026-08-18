@@ -101,6 +101,13 @@ ANTI_NOUNS = frozenset(
 
 BARE_NAMES = frozenset({"acompletion", "chat_completion", "completion", "text_completion"})
 
+# Receivers that are metered when called directly: `self.llm(messages)`. Narrow
+# on purpose — `self.model(x)` is a forward pass in every piece of PyTorch ever
+# written, so `model` is excluded.
+CALLABLE_RECEIVERS = frozenset(
+    {"llm", "_llm", "chat_llm", "llm_client", "language_model", "chat_model"}
+)
+
 HTTP_VERBS = frozenset({"post", "request", "stream"})
 
 ENDPOINT_HINTS = (
@@ -132,6 +139,9 @@ def is_candidate(path: tuple[str, ...], node: ast.Call) -> bool:
         return False
     lowered = [segment.lower() for segment in path]
     tail, context = lowered[-1], lowered[:-1]
+
+    if tail in CALLABLE_RECEIVERS:
+        return True
 
     if len(path) == 1:
         return path[0] in BARE_NAMES  # case-sensitive: a capitalised bare name is a class

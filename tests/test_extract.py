@@ -162,3 +162,28 @@ def test_await_does_not_hide_a_call():
 def test_unparseable_source_raises_rather_than_reporting_no_cost():
     with pytest.raises(SyntaxError):
         extract("def broken(:\n", "f.py")
+
+
+# --- the callable-object framework shape ----------------------------------
+
+
+def test_a_model_object_called_directly_is_a_call_site():
+    """`self.llm(messages)` — LangChain models are callable, and older code
+    calls them this way. A method-name detector cannot see it at all."""
+    site = extract("def f():\n    return self.llm(messages)\n", "a.py")[0]
+    assert site.shape == "framework"
+
+
+def test_a_bare_model_object_called_directly_is_a_call_site():
+    assert extract("def f():\n    return llm(messages)\n", "a.py")
+
+
+def test_a_pytorch_forward_pass_is_not_a_call_site():
+    """`self.model(x)` is a forward pass in every piece of PyTorch ever written.
+    Pricing a tensor multiply would be worse than missing a call."""
+    assert extract("def f():\n    return self.model(x)\n", "a.py") == []
+
+
+def test_the_callable_shape_carries_reduced_confidence():
+    """A variable name is weaker evidence than a type."""
+    assert extract("def f():\n    return self.llm(m)\n", "a.py")[0].confidence < 1.0
