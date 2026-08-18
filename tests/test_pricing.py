@@ -6,7 +6,7 @@ justify, or printing one that is wrong by an order of magnitude.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -99,18 +99,58 @@ def test_embedding_model_has_no_output_cost(table: PriceTable):
 # --- staleness ------------------------------------------------------------
 
 
+def stamped(table: PriceTable) -> date:
+    """The date the table says it was checked.
+
+    Derived rather than hardcoded: a test that pins the literal date fails every
+    time the prices are refreshed, which trains people to edit the test instead
+    of reading it.
+    """
+    return date.fromisoformat(table.as_of)
+
+
 def test_table_reports_its_own_age(table: PriceTable):
     """A stale table producing a confident wrong number is the failure the
     whole range machinery exists to prevent, so the age must be visible."""
-    assert table.age_days(date(2026, 7, 31)) == 30
+    assert table.age_days(stamped(table) + timedelta(days=30)) == 30
 
 
 def test_fresh_table_is_not_stale(table: PriceTable):
-    assert table.is_stale(date(2026, 7, 31)) is False
+    assert table.is_stale(stamped(table) + timedelta(days=30)) is False
 
 
 def test_old_table_is_stale(table: PriceTable):
-    assert table.is_stale(date(2027, 1, 1)) is True
+    assert table.is_stale(stamped(table) + timedelta(days=400)) is True
+
+
+def test_the_current_model_generation_is_priced(table: PriceTable):
+    """The table was once accurate and two generations out of date, which meant
+    the tool answered "unpriced" for almost every model anyone actually runs."""
+    for provider, model in (
+        ("openai", "gpt-5"),
+        ("openai", "gpt-5-mini"),
+        ("anthropic", "claude-sonnet-5"),
+        ("anthropic", "claude-opus-5"),
+        ("anthropic", "claude-haiku-4-5"),
+    ):
+        assert table.lookup(provider, model) is not None, f"{provider}/{model} unpriced"
+
+
+def test_a_minor_version_does_not_collapse_into_its_family(table: PriceTable):
+    """`gpt-5.4` must not be priced as `gpt-5`: they differ by twofold."""
+    assert table.lookup("openai", "gpt-5.4").model == "gpt-5.4"
+    assert table.lookup("openai", "gpt-5").model == "gpt-5"
+
+
+def test_a_size_suffix_wins_over_its_family(table: PriceTable):
+    """`gpt-5-mini-2025-08-07` is five times cheaper than `gpt-5`."""
+    assert table.lookup("openai", "gpt-5-mini-2025-08-07").model == "gpt-5-mini"
+    assert table.lookup("anthropic", "claude-sonnet-4-5-20250929").model == "claude-sonnet-4-5"
+
+
+def test_a_retired_model_is_still_priced(table: PriceTable):
+    """A diff can change a call that pins one, and the base side needs a rate."""
+    assert table.lookup("anthropic", "claude-sonnet-4") is not None
 
 
 def test_unparseable_date_counts_as_stale():
