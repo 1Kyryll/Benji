@@ -11,15 +11,15 @@ from pathlib import Path
 
 import pytest
 
-from chihuahuabot.estimate import Range
-from chihuahuabot.frequency import (
+from benji.estimate import Range
+from benji.frequency import (
     Config,
     ConfigFrequencySource,
     FrequencySource,
     parse_range,
     propagate,
 )
-from chihuahuabot.index import RepoIndex
+from benji.index import RepoIndex
 
 REPO = Path(__file__).parent / "fixtures" / "repo"
 
@@ -82,7 +82,7 @@ def test_a_boolean_is_not_a_frequency():
 
 
 def test_config_reads_frequency_and_iterables(tmp_path: Path):
-    config_file = tmp_path / "chihuahuabot.toml"
+    config_file = tmp_path / "benji.toml"
     config_file.write_text(
         "[frequency]\n"
         '"api:handle" = 5000\n'
@@ -101,7 +101,7 @@ def test_a_missing_config_is_not_an_error(tmp_path: Path):
 
 
 def test_discover_finds_the_config_in_the_repository_root(tmp_path: Path):
-    (tmp_path / "chihuahuabot.toml").write_text('[frequency]\n"a:b" = 1\n')
+    (tmp_path / "benji.toml").write_text('[frequency]\n"a:b" = 1\n')
     assert Config.discover(tmp_path).declared
 
 

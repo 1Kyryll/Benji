@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from chihuahuabot.index import MAX_DEPTH, RepoIndex
+from benji.index import MAX_DEPTH, RepoIndex
 
 ROOT = Path(__file__).parent / "fixtures" / "repo"
 

@@ -7,8 +7,8 @@ gap, always the coverage line, always a way to find the comment again.
 
 from __future__ import annotations
 
-from chihuahuabot.estimate import Factor, Range, SiteEstimate
-from chihuahuabot.render import (
+from benji.estimate import Factor, Range, SiteEstimate
+from benji.render import (
     MARKER,
     BlastRadius,
     Coverage,
@@ -99,7 +99,7 @@ def test_an_undeclared_driver_says_how_to_declare_it():
             total_spread=13.0,
         )
     )
-    assert "chihuahuabot.toml" in body
+    assert "benji.toml" in body
 
 
 def test_the_narrowing_is_quantified():
@@ -213,12 +213,12 @@ def test_a_stale_price_table_warns():
 
 def test_a_missing_config_is_explained_not_ignored():
     body = render(report(config_present=False))
-    assert "chihuahuabot.toml" in body and "dollars per day are not available" in body
+    assert "benji.toml" in body and "dollars per day are not available" in body
 
 
 def test_the_frequency_source_is_named():
     """A reader must tell a declared number from an observed one."""
-    assert "declared" in render(report(frequency_source="declared (chihuahuabot.toml)"))
+    assert "declared" in render(report(frequency_source="declared (benji.toml)"))
 
 
 # --- finding the comment again --------------------------------------------

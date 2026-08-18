@@ -7,8 +7,8 @@ dominant uncertainty instead of printing an invented total.
 
 from __future__ import annotations
 
-from chihuahuabot.extract import extract
-from chihuahuabot.tokens import count, estimate_input
+from benji.extract import extract
+from benji.tokens import count, estimate_input
 
 
 def site(call: str):

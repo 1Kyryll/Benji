@@ -1,4 +1,4 @@
-# ChihuahuaBot
+# Benji
 
 Predicts the LLM and metered-API cost impact of a code diff, and comments it on the pull request.
 
@@ -8,7 +8,7 @@ Static analysis knows what a diff changed. Observability knows what you already 
 knows what a change *about to merge* is going to cost.
 
 ```markdown
-## 💸 ChihuahuaBot — cost impact
+## 💸 Benji — cost impact
 
 **−$462 to +$8,186 / month** · expected **+$299**
 
@@ -18,7 +18,7 @@ knows what a change *about to merge* is going to cost.
 | `workers/digest.py:digest:0` | **new** · $0.00022/call · ×3–500 · 1/day |
 
 > **The range is driven almost entirely by `len(orgs)`**, which is undeclared.
-> Declare it under `[iterables]` or `[frequency]` in `chihuahuabot.toml`.
+> Declare it under `[iterables]` or `[frequency]` in `benji.toml`.
 
 ⚠️ This 4-line change to `LLMClient.chat` affects **47 call sites across 12 files**.
 
@@ -57,8 +57,8 @@ call; it never produces a number.
 ## Install
 
 ```yaml
-# .github/workflows/chihuahuabot.yml
-name: chihuahuabot
+# .github/workflows/benji.yml
+name: benji
 on: pull_request
 permissions:
   contents: read
@@ -68,17 +68,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: 1Kyryll/Chihuahua/action@v1
+      - uses: 1Kyryll/Benji/action@v1
       - uses: actions/upload-artifact@v4
         with:
-          name: chihuahuabot-report
-          path: chihuahuabot-report.json
+          name: benji-report
+          path: benji-report.json
 ```
 
 Posting the comment is a **second workflow**, and that is deliberate. On a pull request from a fork,
 `GITHUB_TOKEN` is read-only: the analysis succeeds and the comment fails with a 403. The fix is to
 analyse without privileges and post from a `workflow_run` job the fork cannot reach. Copy
-[`chihuahuabot-comment.yml`](.github/workflows/chihuahuabot-comment.yml) as-is.
+[`benji-comment.yml`](.github/workflows/benji-comment.yml) as-is.
 
 Never use `pull_request_target` with a checkout of the head ref. That is the well-known way to hand
 a stranger write access to your repository.
@@ -86,8 +86,8 @@ a stranger write access to your repository.
 Locally:
 
 ```bash
-pip install chihuahuabot
-python -m chihuahuabot.cli diff HEAD~1 HEAD
+pip install benji
+python -m benji.cli diff HEAD~1 HEAD
 ```
 
 ## Configure
@@ -96,7 +96,7 @@ Optional. Without it you still get cost per call and multiplicity; you do not ge
 and the comment says so rather than guessing.
 
 ```toml
-# chihuahuabot.toml
+# benji.toml
 [frequency]
 "api.tickets:TicketService.handle" = { low = 2000, expected = 5000, high = 20000 }
 "workers.digest:run" = 1
@@ -109,7 +109,7 @@ Declare **entry points**, not call sites. Nobody knows how often `LLMClient.chat
 knows roughly how many tickets arrive in a day. The bot carries the number down the call graph to
 every metered call it reaches.
 
-See [`chihuahuabot.example.toml`](chihuahuabot.example.toml).
+See [`benji.example.toml`](benji.example.toml).
 
 ## What it detects
 

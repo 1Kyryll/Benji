@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from chihuahuabot.estimate import Range
+from benji.estimate import Range
 
 
 def test_ranges_multiply_low_by_low_and_high_by_high():

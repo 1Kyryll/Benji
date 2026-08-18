@@ -29,7 +29,7 @@ import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from chihuahuabot.extract import CallSite
+from benji.extract import CallSite
 
 # Ordered strongest first. The order is the design, not an optimisation.
 MATCH_CONFIDENCE: dict[str, float] = {

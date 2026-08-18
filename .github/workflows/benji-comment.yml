@@ -3,11 +3,11 @@
 # Runs on workflow_run, so it executes from the base repository with the base
 # repository's permissions, never the fork's code. It reads a JSON artifact and
 # posts it; it does not check out or execute anything from the pull request.
-name: chihuahuabot-comment
+name: benji-comment
 
 on:
   workflow_run:
-    workflows: [chihuahuabot]
+    workflows: [benji]
     types: [completed]
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: chihuahuabot-report
+          name: benji-report
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -31,9 +31,9 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const MARKER = '<!-- chihuahuabot-comment -->';
+            const MARKER = '<!-- benji-comment -->';
 
-            const report = JSON.parse(fs.readFileSync('chihuahuabot-report.json', 'utf8'));
+            const report = JSON.parse(fs.readFileSync('benji-report.json', 'utf8'));
             const issue_number = parseInt(fs.readFileSync('pr-number.txt', 'utf8').trim(), 10);
             if (!issue_number) { core.setFailed('no pull request number in the artifact'); return; }
 

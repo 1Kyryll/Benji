@@ -1,4 +1,4 @@
-name: ChihuahuaBot
+name: Benji
 description: Predict the LLM and metered-API cost impact of a pull request, before it merges.
 author: 1Kyryll
 branding:
@@ -17,7 +17,7 @@ inputs:
   output:
     description: Where to write the JSON report.
     required: false
-    default: chihuahuabot-report.json
+    default: benji-report.json
   python-version:
     description: Python used to run the analysis.
     required: false
@@ -38,7 +38,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    - name: Install ChihuahuaBot
+    - name: Install Benji
       shell: bash
       run: pip install --quiet "${{ github.action_path }}/.."
 
@@ -54,6 +54,6 @@ runs:
         OUTPUT: ${{ inputs.output }}
       run: |
         set -euo pipefail
-        python -m chihuahuabot.cli diff "$BASE" "$HEAD" --format json --output "$OUTPUT"
+        python -m benji.cli diff "$BASE" "$HEAD" --format json --output "$OUTPUT"
         echo "report=$OUTPUT" >> "$GITHUB_OUTPUT"
         python -c "import json,os,sys; d=json.load(open(os.environ['OUTPUT'])); print('empty='+str(d['empty']).lower())" >> "$GITHUB_OUTPUT"

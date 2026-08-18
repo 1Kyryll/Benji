@@ -1,4 +1,4 @@
-# ChihuahuaBot coverage corpus.
+# Benji coverage corpus.
 #
 # Selection rule: prefer APPLICATIONS over LLM libraries. LangChain, LlamaIndex
 # and LiteLLM exist to abstract the SDK; their wrapper-depth distribution is

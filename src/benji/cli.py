@@ -1,4 +1,4 @@
-"""`chihuahuabot diff <base> <head>` — every layer, assembled.
+"""`benji diff <base> <head>` — every layer, assembled.
 
 Up to here each stage has been exercised on its own. This is where they meet:
 two commits in, one PR comment out.
@@ -22,8 +22,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from chihuahuabot.candidates import count_candidates
-from chihuahuabot.estimate import (
+from benji.candidates import count_candidates
+from benji.estimate import (
     Factor,
     Range,
     SiteEstimate,
@@ -33,15 +33,15 @@ from chihuahuabot.estimate import (
     input_range,
     output_range,
 )
-from chihuahuabot.extract import CallSite
-from chihuahuabot.frequency import Config, ConfigFrequencySource, propagate
-from chihuahuabot.identity import match
-from chihuahuabot.index import RepoIndex
-from chihuahuabot.multiplicity import apply_declared, multiplicities
-from chihuahuabot.pricing import PriceTable
-from chihuahuabot.render import BlastRadius, Coverage, Report, SiteChange, render
-from chihuahuabot.terminal import render_terminal
-from chihuahuabot.tokens import estimate_input
+from benji.extract import CallSite
+from benji.frequency import Config, ConfigFrequencySource, propagate
+from benji.identity import match
+from benji.index import RepoIndex
+from benji.multiplicity import apply_declared, multiplicities
+from benji.pricing import PriceTable
+from benji.render import BlastRadius, Coverage, Report, SiteChange, render
+from benji.terminal import render_terminal
+from benji.tokens import estimate_input
 
 SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "site-packages", "build", "dist"}
 
@@ -369,7 +369,7 @@ def build_report(repo: Path, base_ref: str, head_ref: str) -> Report:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="chihuahuabot")
+    parser = argparse.ArgumentParser(prog="benji")
     sub = parser.add_subparsers(dest="command", required=True)
 
     diff = sub.add_parser("diff", help="predict the cost impact between two commits")

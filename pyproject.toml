@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "chihuahuabot"
+name = "benji"
 version = "0.0.1"
 description = "Predicts the LLM/metered-API cost impact of a code diff and comments it on the PR."
 readme = "README.md"
@@ -20,13 +20,13 @@ dependencies = ["tiktoken>=0.7"]
 dev = ["pytest>=8", "ruff>=0.6"]
 
 [project.scripts]
-chihuahuabot = "chihuahuabot.cli:main"
+benji = "benji.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
 
 [tool.setuptools.package-data]
-chihuahuabot = ["*.toml"]
+benji = ["*.toml"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

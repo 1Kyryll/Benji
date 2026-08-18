@@ -8,8 +8,8 @@ site's cost history onto a call that has nothing to do with it.
 
 from __future__ import annotations
 
-from chihuahuabot.extract import extract
-from chihuahuabot.identity import content_hash, match
+from benji.extract import extract
+from benji.identity import content_hash, match
 
 CALL = 'client.chat.completions.create(model="{model}", messages=[])'
 

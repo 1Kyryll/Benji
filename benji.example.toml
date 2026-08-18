@@ -1,4 +1,4 @@
-# ChihuahuaBot configuration. Copy to `chihuahuabot.toml` in your repository root.
+# Benji configuration. Copy to `benji.toml` in your repository root.
 #
 # Everything here is a statement about production that no amount of reading the
 # source can recover. Nothing is required: without this file the bot still

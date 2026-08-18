@@ -13,7 +13,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-MARKER = ".chihuahuabot-checkout-ok"
+MARKER = ".benji-checkout-ok"
 
 
 @dataclass(frozen=True)

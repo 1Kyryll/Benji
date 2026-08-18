@@ -6,8 +6,8 @@ never paid, and inventing a bound for a loop whose size nobody knows.
 
 from __future__ import annotations
 
-from chihuahuabot.estimate import Range
-from chihuahuabot.multiplicity import Multiplicity, apply_declared, multiplicities
+from benji.estimate import Range
+from benji.multiplicity import Multiplicity, apply_declared, multiplicities
 
 CALL = 'client.chat.completions.create(model="gpt-4o", messages=[])'
 
