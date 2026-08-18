@@ -1,0 +1,59 @@
+name: ChihuahuaBot
+description: Predict the LLM and metered-API cost impact of a pull request, before it merges.
+author: 1Kyryll
+branding:
+  icon: dollar-sign
+  color: yellow
+
+inputs:
+  base:
+    description: Commit to compare from. Defaults to the pull request's base.
+    required: false
+    default: ""
+  head:
+    description: Commit to compare to. Defaults to the pull request's head.
+    required: false
+    default: ""
+  output:
+    description: Where to write the JSON report.
+    required: false
+    default: chihuahuabot-report.json
+  python-version:
+    description: Python used to run the analysis.
+    required: false
+    default: "3.12"
+
+outputs:
+  report:
+    description: Path to the JSON report.
+    value: ${{ steps.analyse.outputs.report }}
+  empty:
+    description: "true when nothing metered changed."
+    value: ${{ steps.analyse.outputs.empty }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install ChihuahuaBot
+      shell: bash
+      run: pip install --quiet "${{ github.action_path }}/.."
+
+    - name: Analyse
+      id: analyse
+      shell: bash
+      # base and head are commit SHAs, never branch names or titles: anything
+      # attacker-controlled interpolated into a shell line is a script-injection
+      # hole, and a fork can name a branch whatever it likes.
+      env:
+        BASE: ${{ inputs.base || github.event.pull_request.base.sha }}
+        HEAD: ${{ inputs.head || github.event.pull_request.head.sha }}
+        OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+        python -m chihuahuabot.cli diff "$BASE" "$HEAD" --format json --output "$OUTPUT"
+        echo "report=$OUTPUT" >> "$GITHUB_OUTPUT"
+        python -c "import json,os,sys; d=json.load(open(os.environ['OUTPUT'])); print('empty='+str(d['empty']).lower())" >> "$GITHUB_OUTPUT"

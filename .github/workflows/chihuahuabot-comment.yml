@@ -1,0 +1,61 @@
+# Stage two of two: post the comment.
+#
+# Runs on workflow_run, so it executes from the base repository with the base
+# repository's permissions, never the fork's code. It reads a JSON artifact and
+# posts it; it does not check out or execute anything from the pull request.
+name: chihuahuabot-comment
+
+on:
+  workflow_run:
+    workflows: [chihuahuabot]
+    types: [completed]
+
+permissions:
+  pull-requests: write
+  actions: read
+
+jobs:
+  comment:
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: chihuahuabot-report
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const MARKER = '<!-- chihuahuabot-comment -->';
+
+            const report = JSON.parse(fs.readFileSync('chihuahuabot-report.json', 'utf8'));
+            const issue_number = parseInt(fs.readFileSync('pr-number.txt', 'utf8').trim(), 10);
+            if (!issue_number) { core.setFailed('no pull request number in the artifact'); return; }
+
+            const { owner, repo } = context.repo;
+            const existing = await github.paginate(github.rest.issues.listComments,
+              { owner, repo, issue_number, per_page: 100 });
+            const mine = existing.find(c => c.body && c.body.includes(MARKER));
+
+            // Nothing metered changed. Clean up a stale comment rather than
+            // leaving a number that no longer describes the diff, but do not
+            // post noise on a pull request this bot has nothing to say about.
+            if (report.empty) {
+              if (mine) await github.rest.issues.deleteComment({ owner, repo, comment_id: mine.id });
+              return;
+            }
+
+            // One comment per pull request, updated in place. Twenty pushes
+            // should not mean twenty comments.
+            if (mine) {
+              await github.rest.issues.updateComment(
+                { owner, repo, comment_id: mine.id, body: report.markdown });
+            } else {
+              await github.rest.issues.createComment(
+                { owner, repo, issue_number, body: report.markdown });
+            }
