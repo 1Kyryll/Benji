@@ -3,8 +3,9 @@
 **Benji** predicts the LLM/metered-API cost impact of a code diff and comments it on the PR.
 *Infracost prices the infrastructure you declare; this prices the code that actually spends.*
 
-Open source, for the community. The project is **Benji**, the package is `benji`, the
-repository is `1Kyryll/Benji`. `costbot` and `chihuahuabot` are **deprecated earlier names**
+Open source, for the community. The project is **Benji**, the import package and CLI are
+`benji`, the repository is `1Kyryll/Benji`, and the PyPI distribution is **`benji-bot`** —
+`benji` is taken there by an unrelated backup tool. `costbot` and `chihuahuabot` are **deprecated earlier names**
 and must not appear in code, CLI, config, or docs.
 
 ## How to work here

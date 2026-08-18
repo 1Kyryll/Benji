@@ -86,8 +86,8 @@ a stranger write access to your repository.
 Locally:
 
 ```bash
-pip install benji
-python -m benji.cli diff HEAD~1 HEAD
+pip install benji-bot          # `benji` on PyPI is an unrelated backup tool
+benji diff HEAD~1 HEAD         # or: python -m benji.cli diff HEAD~1 HEAD
 ```
 
 ## Configure

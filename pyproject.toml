@@ -3,7 +3,10 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "benji"
+# Distribution name only. `benji` is taken on PyPI by an unrelated backup
+# tool, so the package ships as benji-bot and imports as benji — the same
+# split as python-dateutil, pillow and half of PyPI.
+name = "benji-bot"
 version = "0.0.1"
 description = "Predicts the LLM/metered-API cost impact of a code diff and comments it on the PR."
 readme = "README.md"
