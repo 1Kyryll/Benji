@@ -55,6 +55,20 @@ class Range:
             self.high + other.high,
         )
 
+    def __sub__(self, other: Range) -> Range:
+        """Interval subtraction, for the delta between two versions.
+
+        Deliberately not low-minus-low. The cheapest the change can be is the
+        cheapest the new code gets *against* the dearest the old code was, so
+        the bounds cross over. Subtracting matching ends would quietly narrow
+        every delta the bot reports.
+        """
+        return Range(
+            self.low - other.high,
+            self.expected - other.expected,
+            self.high - other.low,
+        )
+
     def scale(self, factor: float) -> Range:
         """Multiply by a certainty. Negative factors would invert the range."""
         if factor < 0:
